@@ -31,3 +31,12 @@ for windows https://www.gurobi.com/documentation/9.5/quickstart_windows/index.ht
 for Linux https://www.gurobi.com/documentation/9.5/quickstart_linux/index.html
 
 for Mac OSX https://www.gurobi.com/documentation/9.5/quickstart_mac/index.html
+
+# How to Run Bayan
+
+Clone this repository and run as follows:
+
+```
+import Bayan as bayanalg
+bayanalg.bayan(graph, threshold=0.001, time_allowed=60, delta=0.5, resolution=1)
+```
