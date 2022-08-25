@@ -10,7 +10,7 @@ Clone this repository and run as follows:
 import Bayan as bayanalg
 modularity, optimality_gap, community = bayanalg.bayan(graph, threshold=0.001, time_allowed=60, delta=0.5, resolution=1)
 ```
-## Parameters:
+## Parameters and acceptable input:
 Input graph should be an undirected networkx graph. Can use edge attribute "weight" to represent positive edge weights.
 
 Threshold is the minimum optimality gap that Bayan should execute till. In the above example if Bayan finds a solution with modularity within 0.001 of the optimal solution, it will return that solution.
@@ -22,11 +22,11 @@ delta #unsure how I should describe this#
 resolution is the resolution parameter in the modularity function.
 
 ## Returns:
-modularity of the returned solution.
+modularity value of the returned partition.
 
-optimality_gap is the maximum percentage difference between the modularity of the returned solution and optimal solution.
+optimality_gap is the guaranteed upperbound of the percentage difference between the modularity of the returned returned and the maximum modularity.
 
-community is a nested list describing the community partition of the returned solution.
+community is a nested list describing the community assignment of the returned partition.
 
 # Installing Gurobi with a free academic license 
 
