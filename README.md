@@ -8,7 +8,7 @@ Clone this repository and run as follows:
 
 ```
 import Bayan as bayanalg
-modularity, optimality_gap, community = bayanalg.bayan(graph, threshold=0.001, time_allowed=60, delta=0.5, resolution=1)
+modularity, optimality_gap, community = bayanalg.bayan(graph, threshold=0.001, time_allowed=60, resolution=1)
 ```
 ## Parameters and acceptable input:
 Input graph should be an undirected networkx graph. Can use edge attribute "weight" to represent positive edge weights.
@@ -17,14 +17,12 @@ Threshold is the minimum optimality gap that Bayan should execute till. In the a
 
 time_allowed is the maximum solve time in seconds that Bayan will execute till.
 
-delta #unsure how I should describe this#
-
 resolution is the resolution parameter in the modularity function.
 
 ## Returns:
 modularity value of the returned partition.
 
-optimality_gap is the guaranteed upperbound of the percentage difference between the modularity of the returned returned and the maximum modularity.
+optimality_gap is the guaranteed upperbound of the percentage difference between the modularity of the returned partition and the maximum modularity.
 
 community is a nested list describing the community assignment of the returned partition.
 
