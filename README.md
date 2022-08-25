@@ -41,7 +41,7 @@ import Bayan as bayanalg
 modularity, optimality_gap, community = bayanalg.bayan(graph, threshold=0.001, time_allowed=60, delta=0.5, resolution=1)
 ```
 ## Parameters:
-Input graph should be an undirected networkx graph. Can use edge attribute "weight" to represent edge weights.
+Input graph should be an undirected networkx graph. Can use edge attribute "weight" to represent positive edge weights.
 
 Threshold is the minimum optimality gap that Bayan should execute till. In the above example if Bayan finds a solution with modularity within 0.001 of the optimal solution, it will return that solution.
 
