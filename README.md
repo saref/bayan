@@ -1,10 +1,13 @@
 # bayan
-Bayan Algorithm
+The Bayan algorithm is a community detection method capable of providing a globally optimal solution to the modularity maximization problem. Bayan can also be implemented such that it provides an approximation of the maximum modularity with a guarantee of proximity. This algorithm is theoretically grounded by the Integer Programming (IP) formulation of the modularity maximization problem and relies on an exact branch-and-cut scheme for solving the NP-complete optimization problem to global optimality. More info: https://bayanproject.github.io/
 
 
 # How to Run Bayan
 
-Clone this repository and run as follows:
+1) First method: Run Bayan through the community discovery library (CDlib):
+https://cdlib.readthedocs.io/en/latest/reference/cd_algorithms/algs/cdlib.algorithms.bayan.html
+
+2) Second method: Clone this repository and run as follows:
 
 ```
 import Bayan as bayanalg
@@ -13,7 +16,7 @@ modularity, optimality_gap, community = bayanalg.bayan(graph, threshold=0.001, t
 ## Parameters and acceptable input:
 Input graph should be an undirected networkx graph. Can use edge attribute "weight" to represent positive edge weights.
 
-Threshold is the minimum optimality gap that Bayan should execute till. In the above example if Bayan finds a solution with modularity within 0.001 of the optimal solution, it will return that solution.
+Threshold is the minimum optimality gap that Bayan should execute till. In the above function call if Bayan finds a solution with modularity within 0.001 of the optimal solution, it will return that solution.
 
 time_allowed is the maximum solve time in seconds that Bayan will execute till.
 
