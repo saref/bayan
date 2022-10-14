@@ -1005,7 +1005,6 @@ def bayan(G, threshold=0.001, time_allowed=60, delta=0.5, resolution=1):
         return best_combo.lower_bound, best_lp.upper_bound, percentage_diff(best_lp.upper_bound, best_combo.lower_bound), comms_to_original_name(best_combo.combo_communities, node_name_dict)
 
 
-# In[ ]:
 
 
 def perform_branch(node, model, incumbent, best_bound, Graph, original_graph, isolated_nodes, list_of_cut_triads, delta, resolution):
