@@ -6,27 +6,24 @@
 
 # Install Gurobi
 
-get_ipython().run_line_magic('pip', 'install -i https://pypi.gurobi.com gurobipy')
+# get_ipython().run_line_magic('pip', 'install -i https://pypi.gurobi.com gurobipy')
     
 # Install cdlib
 
-get_ipython().run_line_magic('pip', 'install cdlib')
+# get_ipython().run_line_magic('pip', 'install cdlib')
 
 
 # In[ ]:
 
 
 # importing necessary modules
-import requests, zipfile, os, shutil, json
+import requests, zipfile, shutil, json
 import pandas as pd
 import networkx as nx
 from io import BytesIO
 import numpy as np
-import random
 import time
-import copy
 import multiprocessing
-from itertools import combinations 
 from gurobipy import *
 from cdlib import algorithms
 from networkx.algorithms.connectivity import minimum_st_node_cut
@@ -40,7 +37,7 @@ def get_graph_from_network_name(network_name, sub_name=None):
     """
     Method to create a networkx Graph from network names listed at https://networks.skewed.de/
     """
-    #Defining the network information url
+    # Defining the network information url
     info_url = "https://networks.skewed.de/api/net/%s" % network_name
     req = requests.get(info_url)
     info_dict = json.loads(req.text)
@@ -49,7 +46,7 @@ def get_graph_from_network_name(network_name, sub_name=None):
     else:
         net = sub_name
 
-    #Check and store the names of the available node/edge properties and whether the graph is directed
+    # Check and store the names of the available node/edge properties and whether the graph is directed
     if net == network_name:
         vertex_properties = []
         for prop in info_dict['analyses']["vertex_properties"]:
@@ -71,7 +68,7 @@ def get_graph_from_network_name(network_name, sub_name=None):
         
         is_directed = info_dict['analyses'][net]['is_directed']
     
-    #Defining the zip file URL
+    # Defining the zip file URL
     url = "https://networks.skewed.de/net/%s/files/%s.csv.zip" % (network_name, net)
 
     # Downloading the file by sending the request to the URL
@@ -81,18 +78,18 @@ def get_graph_from_network_name(network_name, sub_name=None):
     z= zipfile.ZipFile(BytesIO(req.content))
     if os.path.isdir(network_name + "_files"):
         shutil.rmtree(network_name + "_files")
-    #creating a dir to extract the files into
+    # creating a dir to extract the files into
     os.mkdir(network_name + "_files")
     z.extractall(os.getcwd() + '/%s_files'%network_name)
     
-    #read in the dataframes of the nodes and edges of the network
+    # read in the dataframes of the nodes and edges of the network
     nodes_df = pd.read_csv(network_name + "_files/nodes.csv")
     edges_df = pd.read_csv(network_name + "_files/edges.csv")
     
-    #Create the graph
+    # Create the graph
     G = nx.Graph()
     
-    #Add the nodes and their attributes to the graph
+    # Add the nodes and their attributes to the graph
     node_attrs = {}
     for row in range(nodes_df.shape[0]):
         G.add_node(nodes_df.iloc[row][0])
@@ -105,7 +102,7 @@ def get_graph_from_network_name(network_name, sub_name=None):
         node_attrs[nodes_df.iloc[row][0]] = vertex_dict
     nx.set_node_attributes(G, node_attrs)
     
-    #Add the edges and their attributes to the graph
+    # Add the edges and their attributes to the graph
     edge_attrs = {}
     is_multigraph = False
     for row in range(edges_df.shape[0]):
@@ -300,10 +297,7 @@ def lp_formulation (Graph, AdjacencyMatrix, ModularityMatrix, size, order, isola
     effectiveBranchingFactors=0
     number_of_subsets=[]
     communities=[]
-    
-#     if len(Graph.nodes()) >= 2000:
-#         return None, None, None, None, None, None
-    
+
     formulation_time_start = time.time()
     list_of_cut_triads=[]
     for i in (Graph).nodes():
@@ -318,10 +312,7 @@ def lp_formulation (Graph, AdjacencyMatrix, ModularityMatrix, size, order, isola
                 list_of_cut_triads.append(list(np.sort([i,j,k])))
             if removed_edge:
                 Graph.add_edge(i, j, weight=attr_dict["weight"], constrained_modularity=attr_dict["constrained_modularity"], actual_weight=attr_dict["actual_weight"])
-    
-#     if len(list_of_cut_triads) >= 2000:
-#         return None, None, None, None, None, None
-    
+
     x={}
 
     model = Model("Modularity maximization")
@@ -694,9 +685,6 @@ def remove_extra_edges(Graph, edge_list):
     return Graph
 
 
-# In[ ]:
-
-
 def reduced_cost_variable_fixing(model, var_vals, obj_value, lower_bound, Graph, resolution):
     AdjacencyMatrix = nx.to_numpy_matrix(Graph, weight="actual_weight")
     ModularityMatrix = get_modularity_matrix(Graph, resolution)
@@ -713,9 +701,6 @@ def reduced_cost_variable_fixing(model, var_vals, obj_value, lower_bound, Graph,
             if new_obj_val + var.getAttr(GRB.Attr.RC) < new_lower_bound:
                 vars_zero.append(key)
     return vars_one, vars_zero
-
-
-# In[ ]:
 
 
 class Node:
@@ -859,16 +844,8 @@ def comms_to_original_name(partition, node_name_dict):
         new_p.append(new_c)
     return new_p
 
-
-# In[ ]:
-
-
 def percentage_diff(v1, v2):
     return str(np.round((abs(v1 - v2)/((v1 + v2)/2))*100, 3)) + "%"
-
-
-# In[ ]:
-
 
 def bayan(G, threshold=0.001, time_allowed=60, delta=0.5, resolution=1):
     """
@@ -1003,8 +980,6 @@ def bayan(G, threshold=0.001, time_allowed=60, delta=0.5, resolution=1):
     else:
         print("Finished!")
         return best_combo.lower_bound, best_lp.upper_bound, percentage_diff(best_lp.upper_bound, best_combo.lower_bound), comms_to_original_name(best_combo.combo_communities, node_name_dict)
-
-
 
 
 def perform_branch(node, model, incumbent, best_bound, Graph, original_graph, isolated_nodes, list_of_cut_triads, delta, resolution):
