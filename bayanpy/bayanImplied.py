@@ -13,7 +13,7 @@ from joblib import Parallel, delayed, parallel_backend
 from itertools import chain
 
 
-#Load Graph from network name
+# Load Graph from network name
 def get_graph_from_network_name(network_name, sub_name=None):
     """
     Method to create a networkx Graph from network names listed at https://networks.skewed.de/
@@ -118,11 +118,6 @@ def get_graph_from_network_name(network_name, sub_name=None):
     
     shutil.rmtree(network_name + "_files")
     return G
-
-
-# In[4]:
-
-
 def get_local_clustering_coefficient(G, node: int):
     """
     Returns the clustering coefficient for the input node in the input graph
@@ -198,15 +193,11 @@ def clique_filtering(G, resolution):
         G_prime.edges[edge[0], edge[1]]["weight"] = ModularityMatrix[edge[0], edge[1]]
     return G_prime
 
-
-
-
 def find_in_list_of_list(mylist, char):
     for sub_list in mylist:
         if char in sub_list:
             return (mylist.index(sub_list))
     raise ValueError("'{char}' is not in list".format(char = char))
-
 
 def model_to_communities(var_vals, Graph):
     """
@@ -257,7 +248,6 @@ def model_to_communities(var_vals, Graph):
     group.sort()
     
     return group
-
 
 def decluster_communities(group, Graph, isolated_nodes):
     """
@@ -311,16 +301,6 @@ def lp_formulation (Graph, AdjacencyMatrix, ModularityMatrix, size, order, isola
 #     list_of_triads=[list(elem) for elem in list_of_tuples]
     formulation_time_start = time.time()
     list_of_cut_triads=[]
-    
-#     pairs_with_edges = []
-#     pairs_without_edges = []
-#     for i in (Graph).nodes():
-#         for j in range(i+1, len((Graph).nodes())):
-#             if Graph.has_edge(i, j):
-#                 pairs_with_edges.append((i, j))
-#             else:
-#                 pairs_without_edges.append((i, j))
-
     pairs = set(combinations(np.sort(list((Graph).nodes())),2))
     self_edges =set([(i, i) for i in (Graph).nodes()])
     pairs_with_edges = set((Graph).edges()) - self_edges
@@ -328,7 +308,6 @@ def lp_formulation (Graph, AdjacencyMatrix, ModularityMatrix, size, order, isola
     pairs_without_edges = list(pairs_without_edges)
     pairs_with_edges = list(pairs_with_edges)
         
-# JOBLIB
     with parallel_backend(backend='loky', n_jobs=-1):
         res = Parallel()(delayed(separating_set_parallel)(pair[0], pair[1], Graph) for pair in pairs_without_edges)
     
@@ -348,30 +327,13 @@ def lp_formulation (Graph, AdjacencyMatrix, ModularityMatrix, size, order, isola
         if removed_edge:
             Graph.add_edge(i, j, weight=attr_dict["weight"], constrained_modularity=attr_dict["constrained_modularity"], actual_weight=attr_dict["actual_weight"])
 
-            
-#     list_of_cut_triads = []
-#     for i in (Graph).nodes():
-#         for j in range(i+1, len((Graph).nodes())):
-#             removed_edge = False
-#             if Graph.has_edge(i, j):
-#                 removed_edge = True
-#                 attr_dict = Graph.edges[i, j]
-#                 Graph.remove_edge(i, j)
-#             minimum_vertex_cut=minimum_st_node_cut(Graph, i, j)
-#             for k in minimum_vertex_cut:
-#                 list_of_cut_triads.append(list(np.sort([i,j,k])))
-#             if removed_edge:
-#                 Graph.add_edge(i, j, weight=attr_dict["weight"], constrained_modularity=attr_dict["constrained_modularity"], actual_weight=attr_dict["actual_weight"])
-#     return list_of_cut_triads
-    
-    x={}
+    x = {}
 
     model = Model("Modularity maximization")
+    model.setParam(GRB.param.OutputFlag, 0) 
     model.setParam(GRB.param.Method, lp_method)
     model.setParam(GRB.Param.Crossover, 0)
     model.setParam(GRB.Param.Threads, min(64,multiprocessing.cpu_count()))
-    model.setParam(GRB.param.OutputFlag, 0) 
-
 
     for i in range(len(Graph.nodes())):
         for j in range(i+1, len(Graph.nodes())):
@@ -386,9 +348,6 @@ def lp_formulation (Graph, AdjacencyMatrix, ModularityMatrix, size, order, isola
 
     model.setObjective(OFV, GRB.MAXIMIZE)
 
-    print('Adding constraints...')
-#     for [i,j,k] in list_of_triads:
-#     base_constraints = []
     for [i,j,k] in list_of_cut_triads:
         model.addConstr(x[(i,k)] <= x[(i, j)] + x[(j, k)], 'triangle1'+','+str(i)+','+str(j)+','+str(k))
         model.addConstr(x[(i,j)] <= x[(i, k)] + x[(j, k)], 'triangle2'+','+str(i)+','+str(j)+','+str(k))
@@ -404,7 +363,7 @@ def lp_formulation (Graph, AdjacencyMatrix, ModularityMatrix, size, order, isola
     # If this optional step is skipped, you should comment out these five lines
     if warmstart==1:
         #Solution from Combo algorithm to be used as warm-start
-        partition = algorithms.pycombo(Graph[index])
+        partition = algorithms.pycombo(Graph[index], modularity_resolution=resolution)
         community_combo=list(partition.communities)
         for i in (Graph).nodes():
             for j in filter(lambda x: x>i, (Graph).nodes()):
@@ -435,7 +394,7 @@ def lp_formulation (Graph, AdjacencyMatrix, ModularityMatrix, size, order, isola
     objectivevalue = np.round(((2*obj.getValue()+(ModularityMatrix.trace()))/np.sum(AdjacencyMatrix)), 8)
 
 
-    print('Instance 0',': modularity equals',objectivevalue) 
+#    print('Instance 0',': modularity equals',objectivevalue) 
 
     if (model.NodeCount)**(1/((size)+2*(order))) >= 1:
         effectiveBranchingFactors = ((model.NodeCount)**(1/((size)+2*(order))))  
@@ -446,18 +405,18 @@ def lp_formulation (Graph, AdjacencyMatrix, ModularityMatrix, size, order, isola
         
     communities = model_to_communities(var_vals, Graph)
 
-    print("Communities: ", communities)
+#    print("Communities: ", communities)
 
     communities_declustered = decluster_communities(communities, Graph, isolated_nodes)
-    print("Communities de-clustered: ", communities_declustered)
+#    print("Communities de-clustered: ", communities_declustered)
 
     
 
-    print("\n")
-    print("Q*:")
-    print(objectivevalue)
+#    print("\n")
+#    print("Q*:")
+#    print(objectivevalue)
 
-    print("solve time:",solveTime)
+#    print("solve time:",solveTime)
     
     return objectivevalue, var_vals, model, list_of_cut_triads, formulation_time, solveTime
 
@@ -500,11 +459,11 @@ def run_lp(model, Graph, fixed_ones, fixed_zeros, resolution):
     for var in model.getVars():
         var_vals[var.varName] = var.x
 
-    print("\n")
-    print("Q*:")
-    print(objectivevalue)
+#    print("\n")
+#    print("Q*:")
+#    print(objectivevalue)
 
-    print("solve time:",solveTime)
+#    print("solve time:",solveTime)
     
     return objectivevalue, var_vals, model
 
@@ -965,7 +924,7 @@ def get_modularity_matrix(Graph, resolution):
 # In[46]:
 
 
-def bayan(G, threshold=0.001, time_allowed=60, delta=0.5, resolution=1, lp_method=4):
+def bayan(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_method=4):
     """
     Run bayan on input Graph while MIP gap > threshold and runtime < time_allowed (default is 60 seconds)
     """
@@ -988,13 +947,13 @@ def bayan(G, threshold=0.001, time_allowed=60, delta=0.5, resolution=1, lp_metho
     if is_integer_solution(Graph, var_vals):
         return 1, mod_lp, mod_lp, decluster_communities(model_to_communities(var_vals, Graph), Graph, isolated_nodes), preprocessing_time, formulation_time, root_lp_time
     root_combo_time_start = time.time()
-    partition_combo = algorithms.pycombo(Graph, weight="actual_weight")
+    partition_combo = algorithms.pycombo(Graph, weight="actual_weight", modularity_resolution=resolution)
     communities_combo = list(partition_combo.communities)
 #     return communities_combo
     communities_combo_declustered = decluster_communities(communities_combo, Graph, isolated_nodes)
     mod_combo = calculate_modularity(communities_combo_declustered, orig_graph, resolution)
     root_combo_time = time.time() - root_combo_time_start
-    print(mod_combo)
+#    print(mod_combo)
     if mod_lp - mod_combo < threshold:
         return 2, mod_combo, mod_lp, communities_combo_declustered, preprocessing_time, formulation_time, root_combo_time+root_lp_time
     best_bound = mod_lp
@@ -1031,7 +990,7 @@ def bayan(G, threshold=0.001, time_allowed=60, delta=0.5, resolution=1, lp_metho
 #             model.reset()
             left_node, right_node = perform_branch(node, model, incumbent, best_bound, Graph, orig_graph, isolated_nodes, list_of_cut_triads, delta, resolution)
             if left_node.close:
-                print("Left node closed")
+                print("Left node is closed")
                 if left_node.is_integer and incumbent <= left_node.upper_bound:
 #                     p_inc = incumbent
                     incumbent = left_node.upper_bound
@@ -1052,7 +1011,7 @@ def bayan(G, threshold=0.001, time_allowed=60, delta=0.5, resolution=1, lp_metho
                 left_node.set_level(current_level)
 
             if right_node.close:
-                print("Right node closed")
+                print("Right node is closed")
                 if right_node.is_integer and incumbent <= right_node.upper_bound:
                     incumbent = right_node.upper_bound
                     best_combo = right_node
@@ -1089,7 +1048,7 @@ def bayan(G, threshold=0.001, time_allowed=60, delta=0.5, resolution=1, lp_metho
         for n in nodes_current_level:
             if n.upper_bound == best_bound:
                 best_lp = n
-        print(incumbent, best_bound)
+#        print("Bounds", incumbent, best_bound)
         current_level += 1
         nodes_p_level = []
         for a in nodes_current_level:
@@ -1167,7 +1126,7 @@ def perform_branch(node, model, incumbent, best_bound, Graph, original_graph, is
     prev_fixed_zeros = node.get_fixed_zeros().copy()
     #Select triple based on most common nodes with previous triple
     branch_triple = get_best_triple(violated_triples_dict, node, Graph)
-    print(branch_triple)
+#    print(branch_triple)
     print("======== BRANCHING ON " + str(branch_triple) + " ========")
     x_ij = model.getVarByName(str(branch_triple[0]) + "," + str(branch_triple[1]))
     x_jk = model.getVarByName(str(branch_triple[1]) + "," + str(branch_triple[2]))
@@ -1205,12 +1164,12 @@ def perform_branch(node, model, incumbent, best_bound, Graph, original_graph, is
     model.update()
     
     left_graph, edges_added = reduce_triple(node.graph, branch_triple, Graph, resolution)
-    left_partition_combo = algorithms.pycombo(left_graph, treat_as_modularity=True)
+    left_partition_combo = algorithms.pycombo(left_graph, treat_as_modularity=True, modularity_resolution=resolution)
     left_communities_combo = list(left_partition_combo.communities)
     left_decluster_combo = decluster_communities(left_communities_combo, left_graph, isolated_nodes)
     left_graph = remove_extra_edges(left_graph, edges_added)
     left_lower_bound = calculate_modularity(left_decluster_combo, original_graph, resolution)
-    print(left_lower_bound)
+#    print(left_lower_bound)
     left_constraints = node.constraints.copy()
     left_constraints.append(branch_triple + (0,))
     left_node = Node(left_constraints, left_var_vals, left_graph, left_decluster_combo)
@@ -1223,7 +1182,7 @@ def perform_branch(node, model, incumbent, best_bound, Graph, original_graph, is
         left_node.set_fixed_ones(prev_fixed_ones + left_fix_ones + implied_ones)
         left_node.set_fixed_zeros(prev_fixed_zeros + left_fix_zeros + implied_zeros)
         if is_integer_solution(left_graph, left_var_vals):
-            print("IS integer")
+            print("LP solution is integer")
             left_node.set_is_integer()
             left_node.close_node()
         if left_upper_bound <= incumbent:
@@ -1268,12 +1227,12 @@ def perform_branch(node, model, incumbent, best_bound, Graph, original_graph, is
     model.update()
     
     right_graph, edges_added = alter_modularity(node.graph, branch_triple, Graph, delta, resolution)
-    right_partition_combo = algorithms.pycombo(right_graph, treat_as_modularity=True)
+    right_partition_combo = algorithms.pycombo(right_graph, treat_as_modularity=True, modularity_resolution=resolution)
     right_communities_combo = list(right_partition_combo.communities)
     right_decluster_combo = decluster_communities(right_communities_combo, right_graph, isolated_nodes)
     right_lower_bound = calculate_modularity(right_decluster_combo, original_graph, resolution)
     right_graph = remove_extra_edges(right_graph, edges_added)
-    print(right_lower_bound)
+#    print(right_lower_bound)
     right_constraints = node.constraints.copy()
     right_constraints.append(branch_triple + (2,))
     right_constraints += implied_constraints
@@ -1289,13 +1248,10 @@ def perform_branch(node, model, incumbent, best_bound, Graph, original_graph, is
         right_node.set_fixed_ones(prev_fixed_ones + right_fix_ones)
         right_node.set_fixed_zeros(prev_fixed_zeros + right_fix_zeros)
         if is_integer_solution(right_graph, right_var_vals):
-            print("IS integer")
+            print("LP solution is integer")
             right_node.set_is_integer()
             right_node.close_node()
         if right_upper_bound <= incumbent:
             right_node.close_node()
     return left_node, right_node
     
-    
-   
-

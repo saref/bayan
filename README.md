@@ -57,11 +57,7 @@ For detailed installation instructions, refer to the Gurobi Quick Start Guides f
 
 ## Usage
 
-You can use Bayanpy in two ways:
-
-### 1. As a standalone package (Recommended)
-
-After installing Bayanpy, you can use it directly in your Python code as follows:
+You can use Bayanpy as a standalone package. After installing Bayanpy, you can use it directly in your Python code as follows:
 
 ```python
 import networkx as nx
@@ -75,9 +71,6 @@ modularity, optimality_gap, community = bayanpy.bayan(graph, threshold=0.001, ti
 ```
 
 
-### 2. Through the CDlib (Community Discovery library)
-
-Bayanpy can be used as part of the [CDlib](https://cdlib.readthedocs.io/en/latest/reference/cd_algorithms/algs/cdlib.algorithms.bayan.html) package. Follow the CDlib documentation for more details on how to use Bayan with CDlib.
 
 #### Parameters and acceptable input
 
@@ -91,6 +84,11 @@ Bayanpy can be used as part of the [CDlib](https://cdlib.readthedocs.io/en/lates
 - `modularity`: The modularity value of the returned partition.
 - `optimality_gap`: The guaranteed upper bound of the percentage difference between the modularity of the returned partition and the maximum modularity.
 - `community`: A nested list describing the community assignment of the returned partition.
+
+
+### Example
+You can find a few examples of different ways Bayan can be used at this Google Colab address: [bayanpy Examples](https://tinyurl.com/bayancolab)
+
 
 ## Contributing
 
