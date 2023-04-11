@@ -3,6 +3,8 @@
 Bayanpy is a Python package implementing the Bayan algorithm, a community detection method capable of providing a globally optimal solution to the modularity maximization problem. Bayan can also be implemented such that it provides an approximation of the maximum modularity with a guarantee of proximity. This algorithm is theoretically grounded by the Integer Programming (IP) formulation of the modularity maximization problem and relies on an exact branch-and-cut scheme for solving the NP-complete optimization problem to global optimality.
 
 For more information, visit the [Bayan project website](https://bayanproject.github.io/).
+For a few examples of different ways you can use Bayan see this Google Colab address: [bayanpy Examples](https://tinyurl.com/bayancolab).
+
 
 ## Installation
 
