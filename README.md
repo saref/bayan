@@ -23,7 +23,6 @@ Bayanpy has the following dependencies:
 - networkx>=2.6.3
 - numpy>=1.21.0
 - gurobipy>=9.5
-- cdlib>=0.2.6
 - joblib>=1.1.0
 
 These packages will be automatically installed when you install Bayanpy using pip.

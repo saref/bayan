@@ -124,13 +124,13 @@ def get_local_clustering_coefficient(G, node: int):
     """
     Returns the clustering coefficient for the input node in the input graph
     """
-    neighbours = nx.adjacency_matrix(G)[node].indices
+    neighbours = nx.adjacency_matrix(G)[:node].indices
     if neighbours.shape[0] <= 1:
         return 0.0
     num_possible_edges = ((neighbours.shape[0])*(neighbours.shape[0]-1)) / 2
     num_actual_edges = 0
     for neighbour in neighbours:
-        num_actual_edges += np.intersect1d(neighbours, nx.adjacency_matrix(G)[neighbour].indices).shape[0]
+        num_actual_edges += np.intersect1d(neighbours, nx.adjacency_matrix(G)[:neighbour].indices).shape[0]
     num_actual_edges = num_actual_edges / 2
     return num_actual_edges / num_possible_edges
 
@@ -151,7 +151,7 @@ def clique_filtering(G, resolution):
         if skip:
             shrink_dict[node] = node
             continue
-        neighbours = nx.adjacency_matrix(G)[node].indices
+        neighbours = nx.adjacency_matrix(G)[:node].indices
         if neighbours.shape[0] == 1:
             shrink_dict[node] = neighbours[0]
             continue
@@ -369,7 +369,7 @@ def lp_formulation_pyomo(Graph, AdjacencyMatrix, ModularityMatrix, size, order, 
     if warmstart == 1:
         # Solution from Combo algorithm to be used as warm-start
         partition = pycombo.execute(Graph, modularity_resolution=resolution)
-        community_combo = list(partition.communities)
+        community_combo = convert_to_com_list(partition[0])
         for i in (Graph).nodes():
             for j in filter(lambda x: x > i, (Graph).nodes()):
                 if find_in_list_of_list(community_combo, i) == find_in_list_of_list(community_combo, j):
@@ -402,7 +402,7 @@ def run_lp_pyomo(model, Graph, fixed_ones, fixed_zeros, resolution, lp_method):
     Run the LP based on model and the original Graph as input
     """
     ModularityMatrix = get_modularity_matrix(Graph, resolution)
-    AdjacencyMatrix = nx.to_numpy_matrix(Graph, weight='actual_weight')
+    AdjacencyMatrix = nx.adjacency_matrix(Graph, weight='actual_weight')
 
     # Fix variables
     for (i, j) in fixed_ones:
@@ -436,7 +436,7 @@ def run_lp_pyomo(model, Graph, fixed_ones, fixed_zeros, resolution, lp_method):
         return -1, -1, model
 
 
-def lp_formulation (Graph, AdjacencyMatrix, ModularityMatrix, size, order, isolated_nodes,
+def lp_formulation (Graph, AdjacencyMatrix, ModularityMatrix, isolated_nodes,
                     lp_method, warmstart=int(0), branching_priotiy=int(0)):
     """
     Method to create the LP model and run it for the root node
@@ -506,7 +506,7 @@ def lp_formulation (Graph, AdjacencyMatrix, ModularityMatrix, size, order, isola
     if warmstart==1:
         #Solution from Combo algorithm to be used as warm-start
         partition = pycombo.execute(Graph, modularity_resolution=resolution)
-        community_combo=list(partition.communities)
+        community_combo=convert_to_com_list(partition[0])
         for i in (Graph).nodes():
             for j in filter(lambda x: x>i, (Graph).nodes()):
                 if find_in_list_of_list(community_combo,i)==find_in_list_of_list(community_combo,j):
@@ -549,7 +549,7 @@ def run_lp(model, Graph, fixed_ones, fixed_zeros, resolution):
     """
 #     ModularityMatrix = nx.modularity_matrix(Graph, weight='actual_weight')
     ModularityMatrix = get_modularity_matrix(Graph, resolution)
-    AdjacencyMatrix = nx.to_numpy_matrix(Graph, weight='actual_weight')
+    AdjacencyMatrix = nx.adjacency_matrix(Graph, weight='actual_weight')
     
     for var_name in fixed_ones:
         var = model.getVarByName(var_name)
@@ -598,9 +598,8 @@ def calculate_modularity(community, Graph, resolution):
     """
     Method that calculates modularity for input community partition on input Graph
     """
-#     ModularityMatrix = nx.modularity_matrix(Graph, weight="actual_weight")
     ModularityMatrix = get_modularity_matrix(Graph, resolution)
-    AdjacencyMatrix = nx.to_numpy_matrix(Graph, weight="actual_weight")
+    AdjacencyMatrix = nx.adjacency_matrix(Graph, weight="actual_weight")
     OFV=0
     for item in community:
         if len(item)>1:
@@ -856,8 +855,7 @@ def remove_extra_edges(Graph, edge_list):
 
 
 def reduced_cost_variable_fixing(model, var_vals, obj_value, lower_bound, Graph, resolution):
-    AdjacencyMatrix = nx.to_numpy_matrix(Graph, weight="actual_weight")
-#     ModularityMatrix = nx.modularity_matrix(Graph, weight="actual_weight")
+    AdjacencyMatrix = nx.adjacency_matrix(Graph, weight="actual_weight")
     ModularityMatrix = get_modularity_matrix(Graph, resolution)
 #     new_obj_val = ((obj_value*np.sum(AdjacencyMatrix)) - ModularityMatrix.trace()[0, 0])/2
 #     new_lower_bound = ((lower_bound*np.sum(AdjacencyMatrix)) - ModularityMatrix.trace()[0, 0])/2
@@ -969,8 +967,21 @@ def handle_isolated_nodes(Graph):
     Graph = nx.convert_node_labels_to_integers(Graph)
     return Graph, isolated
 
+
+def convert_to_com_list(com_dict):
+    out = {}
+    for node, com_id in com_dict.items():
+        if com_id in out.keys():
+            out[com_id].append(node)
+        else:
+            out[com_id] = [node]
+
+    out = [com for com in out.values()]
+    return out
+
+
 def get_modularity_matrix(Graph, resolution):
-    AdjacencyMatrix = nx.to_numpy_matrix(Graph, weight="actual_weight")
+    AdjacencyMatrix = nx.adjacency_matrix(Graph, weight="actual_weight")
     ModularityMatrix = np.empty(AdjacencyMatrix.shape)
     for i in Graph.nodes():
         for j in Graph.nodes():
@@ -981,8 +992,8 @@ def get_modularity_matrix(Graph, resolution):
     return ModularityMatrix
 
 
-def output(mapping, develop, state, lower_bound, upper_bound, communities, preprocessing_time, formulation_time, solve_time):
-    communities = [[mapping[i] for i in com] for com in communities]
+def output(develop, state, lower_bound, upper_bound, communities, preprocessing_time, formulation_time, solve_time):
+
     if develop:
         out = state, lower_bound, upper_bound, communities, preprocessing_time, formulation_time, solve_time
     else:
@@ -992,7 +1003,8 @@ def output(mapping, develop, state, lower_bound, upper_bound, communities, prepr
 
 
 def bayan(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_method=4, develop_mode=False):
-
+    G = nx.convert_node_labels_to_integers(G, label_attribute="original_label")
+    mapping = nx.get_node_attributes(G, 'original_label')
     # Running Bayan for a network with multiple connected components
     optimal_partition = []
     list_of_subgraphs = [G.subgraph(c).copy() for c in nx.connected_components(G)]
@@ -1001,8 +1013,8 @@ def bayan(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_meth
     total_gap = 0
     total_modeling_time = 0
     total_solve_time = 0
-    total_preprocessing_time =0
-    total_formulation_time =0
+    total_preprocessing_time = 0
+    total_formulation_time = 0
     threshold_sub = threshold / n_sub
     for sub_inx, sub_graph in enumerate(list_of_subgraphs):
         bayan_output = alg(sub_graph, threshold=threshold_sub, time_allowed=time_allowed, delta=delta,
@@ -1020,8 +1032,10 @@ def bayan(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_meth
             total_gap += bayan_output[1]
             total_modeling_time += bayan_output[3]
             total_solve_time += bayan_output[4]
-
+    print(optimal_partition)
     lower_bound = calculate_modularity(optimal_partition, G, resolution)
+
+    optimal_partition = [[mapping[i] for i in com] for com in optimal_partition]
 
     if develop_mode:
         for sub_inx, sub_graph in enumerate(list_of_subgraphs):
@@ -1040,31 +1054,29 @@ def alg(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_method
     """
     run_start = time.time()
     preprocessing_time_start = time.time()
-    G = nx.convert_node_labels_to_integers(G, label_attribute="original_label")
-    mapping = nx.get_node_attributes(G, 'original_label')
-
     G1 = G.copy()
     orig_graph = create_bayan_edge_attributes(G1, resolution)
     G2 = orig_graph.copy()
     Graph, isolated_nodes = handle_isolated_nodes(G2)
     Graph = clique_filtering(Graph, resolution)
-    AdjacencyMatrix = nx.to_numpy_matrix(Graph, weight="actual_weight")
+    AdjacencyMatrix = nx.adjacency_matrix(Graph, weight="actual_weight")
     ModularityMatrix = get_modularity_matrix(Graph, resolution)
-    size = int(Graph.size(weight='actual_weight'))
-    order = len(AdjacencyMatrix)
+    #size = int(Graph.size(weight='actual_weight'))
+    #order = len(AdjacencyMatrix)
     preprocessing_time = time.time() - preprocessing_time_start
     mod_lp, var_vals, model, list_of_cut_triads, formulation_time, root_lp_time = \
-        lp_formulation(Graph, AdjacencyMatrix, ModularityMatrix, size, order, isolated_nodes, lp_method)
+        lp_formulation(Graph, AdjacencyMatrix, ModularityMatrix, isolated_nodes, lp_method)
     if is_integer_solution(Graph, var_vals):
-        return output(mapping, develop_mode, 1, mod_lp, mod_lp, decluster_communities(model_to_communities(var_vals, Graph), Graph, isolated_nodes), preprocessing_time, formulation_time, root_lp_time)
+        return output(develop_mode, 1, mod_lp, mod_lp, decluster_communities(model_to_communities(var_vals, Graph), Graph, isolated_nodes), preprocessing_time, formulation_time, root_lp_time)
     root_combo_time_start = time.time()
     partition_combo = pycombo.execute(Graph, weight="actual_weight", modularity_resolution=resolution)
-    communities_combo = list(partition_combo.communities)
+    communities_combo = convert_to_com_list(partition_combo[0])
     communities_combo_declustered = decluster_communities(communities_combo, Graph, isolated_nodes)
     mod_combo = calculate_modularity(communities_combo_declustered, orig_graph, resolution)
     root_combo_time = time.time() - root_combo_time_start
+
     if mod_lp - mod_combo < threshold:
-        return output(mapping, develop_mode,2, mod_combo, mod_lp, communities_combo_declustered, preprocessing_time, formulation_time, root_combo_time+root_lp_time)
+        return output(develop_mode,2, mod_combo, mod_lp, communities_combo_declustered, preprocessing_time, formulation_time, root_combo_time+root_lp_time)
     best_bound = mod_lp
     incumbent = mod_combo
     root = Node([], var_vals, Graph, communities_combo_declustered)
@@ -1088,11 +1100,11 @@ def alg(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_method
             if time.time() - solve_start - root_time >= time_allowed:
                 if best_combo.is_integer:
                     if best_combo.lower_bound <= best_combo.upper_bound:
-                        return output(mapping, develop_mode,3, best_combo.upper_bound, best_combo.upper_bound, decluster_communities(model_to_communities(best_combo.var_vals, Graph), Graph, isolated_nodes), preprocessing_time, formulation_time, time.time() - solve_start + root_time)
+                        return output(develop_mode,3, best_combo.upper_bound, best_combo.upper_bound, decluster_communities(model_to_communities(best_combo.var_vals, Graph), Graph, isolated_nodes), preprocessing_time, formulation_time, time.time() - solve_start + root_time)
                     else:
-                        return output(mapping, develop_mode,4, best_combo.lower_bound, best_lp.upper_bound, best_combo.combo_communities, preprocessing_time, formulation_time, time.time() - solve_start + root_time)
+                        return output(develop_mode,4, best_combo.lower_bound, best_lp.upper_bound, best_combo.combo_communities, preprocessing_time, formulation_time, time.time() - solve_start + root_time)
                 else:
-                    return output(mapping, develop_mode,5, best_combo.lower_bound, best_lp.upper_bound, best_combo.combo_communities, preprocessing_time, formulation_time, time.time() - solve_start + root_time)
+                    return output(develop_mode,5, best_combo.lower_bound, best_lp.upper_bound, best_combo.combo_communities, preprocessing_time, formulation_time, time.time() - solve_start + root_time)
             current_node = node
             left_node, right_node = perform_branch(node, model, incumbent, best_bound, Graph, orig_graph, isolated_nodes, list_of_cut_triads, delta, resolution)
             if left_node.close:
@@ -1165,11 +1177,11 @@ def alg(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_method
 #     print(best_lp.lower_bound, best_lp.upper_bound)
     if best_combo.is_integer:
         if best_combo.lower_bound <= best_combo.upper_bound:
-            return output(mapping, develop_mode,6, best_combo.upper_bound, best_combo.upper_bound, decluster_communities(model_to_communities(best_combo.var_vals, Graph), Graph, isolated_nodes), preprocessing_time, formulation_time, time.time() - solve_start + root_time)
+            return output(develop_mode, 6, best_combo.upper_bound, best_combo.upper_bound, decluster_communities(model_to_communities(best_combo.var_vals, Graph), Graph, isolated_nodes), preprocessing_time, formulation_time, time.time() - solve_start + root_time)
         else:
-            return output(mapping, develop_mode,7, best_combo.lower_bound, best_lp.upper_bound, best_combo.combo_communities, preprocessing_time, formulation_time, time.time() - solve_start + root_time)
+            return output(develop_mode,7, best_combo.lower_bound, best_lp.upper_bound, best_combo.combo_communities, preprocessing_time, formulation_time, time.time() - solve_start + root_time)
     else:
-        return output(mapping, develop_mode,8, best_combo.lower_bound, best_lp.upper_bound, best_combo.combo_communities, preprocessing_time, formulation_time, time.time() - solve_start + root_time)
+        return output(develop_mode,8, best_combo.lower_bound, best_lp.upper_bound, best_combo.combo_communities, preprocessing_time, formulation_time, time.time() - solve_start + root_time)
 
 def left_implied(left_fix_ones, left_fix_zeros, branch_triple):
     ones = left_fix_ones.copy()
@@ -1254,7 +1266,7 @@ def perform_branch(node, model, incumbent, best_bound, Graph, original_graph, is
     
     left_graph, edges_added = reduce_triple(node.graph, branch_triple, Graph, resolution)
     left_partition_combo = pycombo.execute(left_graph, treat_as_modularity=True, modularity_resolution=resolution)
-    left_communities_combo = list(left_partition_combo.communities)
+    left_communities_combo = convert_to_com_list(left_partition_combo[0])
     left_decluster_combo = decluster_communities(left_communities_combo, left_graph, isolated_nodes)
     left_graph = remove_extra_edges(left_graph, edges_added)
     left_lower_bound = calculate_modularity(left_decluster_combo, original_graph, resolution)
@@ -1312,7 +1324,7 @@ def perform_branch(node, model, incumbent, best_bound, Graph, original_graph, is
     
     right_graph, edges_added = alter_modularity(node.graph, branch_triple, Graph, delta, resolution)
     right_partition_combo = pycombo.execute(right_graph, treat_as_modularity=True, modularity_resolution=resolution)
-    right_communities_combo = list(right_partition_combo.communities)
+    right_communities_combo = convert_to_com_list(right_partition_combo[0])
     right_decluster_combo = decluster_communities(right_communities_combo, right_graph, isolated_nodes)
     right_lower_bound = calculate_modularity(right_decluster_combo, original_graph, resolution)
     right_graph = remove_extra_edges(right_graph, edges_added)
