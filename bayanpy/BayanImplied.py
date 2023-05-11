@@ -1003,8 +1003,6 @@ def output(develop, state, lower_bound, upper_bound, communities, preprocessing_
 
 
 def bayan(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_method=4, develop_mode=False):
-    G = nx.convert_node_labels_to_integers(G, label_attribute="original_label")
-    mapping = nx.get_node_attributes(G, 'original_label')
     # Running Bayan for a network with multiple connected components
     optimal_partition = []
     list_of_subgraphs = [G.subgraph(c).copy() for c in nx.connected_components(G)]
@@ -1017,25 +1015,33 @@ def bayan(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_meth
     total_formulation_time = 0
     threshold_sub = threshold / n_sub
     for sub_inx, sub_graph in enumerate(list_of_subgraphs):
+
+        sub_graph = nx.convert_node_labels_to_integers(sub_graph, label_attribute="original_label")
+        mapping = nx.get_node_attributes(sub_graph, 'original_label')
+
         bayan_output = alg(sub_graph, threshold=threshold_sub, time_allowed=time_allowed, delta=delta,
               resolution=resolution, lp_method=lp_method, develop_mode=develop_mode)
 
         if develop_mode:
             sub_results[sub_inx] = bayan_output
-            optimal_partition += bayan_output[3]
+            optimal_partition += [[mapping[i] for i in com] for com in bayan_output[3]]
             total_preprocessing_time += bayan_output[4]
             total_formulation_time += bayan_output[5]
             total_solve_time += bayan_output[6]
 
         else:
-            optimal_partition += bayan_output[2]
+            optimal_partition += [[mapping[i] for i in com] for com in bayan_output[3]]
             total_gap += bayan_output[1]
             total_modeling_time += bayan_output[3]
             total_solve_time += bayan_output[4]
     print(optimal_partition)
-    lower_bound = calculate_modularity(optimal_partition, G, resolution)
 
-    optimal_partition = [[mapping[i] for i in com] for com in optimal_partition]
+    G = nx.convert_node_labels_to_integers(G, label_attribute="original_label")
+    mapping = nx.get_node_attributes(G, 'original_label')
+    mapping ={val: key for key, val in mapping.items()}
+    int_optimal_partition = [[mapping[i] for i in com] for com in optimal_partition]
+    lower_bound = calculate_modularity(int_optimal_partition, G, resolution)
+
 
     if develop_mode:
         for sub_inx, sub_graph in enumerate(list_of_subgraphs):
