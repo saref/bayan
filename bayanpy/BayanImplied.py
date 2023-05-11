@@ -1030,11 +1030,11 @@ def bayan(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_meth
             total_solve_time += bayan_output[6]
 
         else:
-            optimal_partition += [[mapping[i] for i in com] for com in bayan_output[3]]
+            optimal_partition += [[mapping[i] for i in com] for com in bayan_output[2]]
             total_gap += bayan_output[1]
             total_modeling_time += bayan_output[3]
             total_solve_time += bayan_output[4]
-    print(optimal_partition)
+    # print(optimal_partition)
 
     G = nx.convert_node_labels_to_integers(G, label_attribute="original_label")
     mapping = nx.get_node_attributes(G, 'original_label')
