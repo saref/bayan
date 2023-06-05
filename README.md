@@ -66,7 +66,7 @@ import networkx as nx
 import bayanpy
 
 # Create or load your networkx graph (undirected)
-graph = nx.karate_club_graph()
+graph = nx.florentine_families_graph()
 
 # Run the Bayan algorithm
 modularity, optimality_gap, community, modeling_time, solve_time = bayanpy.bayan(graph, threshold=0.001, time_allowed=60, resolution=1)
