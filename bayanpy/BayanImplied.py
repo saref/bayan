@@ -609,6 +609,22 @@ def calculate_modularity(community, Graph, resolution):
 #     OFV = OFV + ModularityMatrix.trace()[0,0]
     OFV = OFV + ModularityMatrix.trace()
     return np.round(OFV/(np.sum(AdjacencyMatrix)), 8)
+    
+def calculate_weighted_modularity(community, Graph, resolution):
+    """
+    Method that calculates weighted modularity for input community partition on input Graph
+    """
+    ModularityMatrix = get_weighted_modularity_matrix(Graph, resolution, weight="weight")
+    AdjacencyMatrix = nx.adjacency_matrix(Graph, weight="weight")
+    OFV=0
+    for item in community:
+        if len(item)>1:
+            for i in range(0,len(item)):
+                for j in range(i+1,len(item)):
+                    OFV = OFV + 2*(ModularityMatrix[item[i],item[j]])
+#     OFV = OFV + ModularityMatrix.trace()[0,0]
+    OFV = OFV + ModularityMatrix.trace()
+    return np.round(OFV/(np.sum(AdjacencyMatrix)), 8)
 
 def find_violating_triples(Graph, var_vals, list_of_cut_triads):
     """
@@ -987,7 +1003,18 @@ def get_modularity_matrix(Graph, resolution):
         for j in Graph.nodes():
             deg_i = Graph.degree(i, weight="actual_weight") - AdjacencyMatrix[i, i]
             deg_j = Graph.degree(j, weight="actual_weight") - AdjacencyMatrix[j, j]
-            mod = AdjacencyMatrix[i, j] - (((deg_i*deg_j)/(np.sum(AdjacencyMatrix)))*resolution)
+            mod = AdjacencyMatrix[i, j] - (resolution*((deg_i*deg_j)/(np.sum(AdjacencyMatrix))))
+            ModularityMatrix[i, j] = mod
+    return ModularityMatrix
+
+def get_weighted_modularity_matrix(Graph, resolution, weight):
+    AdjacencyMatrix = nx.adjacency_matrix(Graph, weight="weight")
+    ModularityMatrix = np.empty(AdjacencyMatrix.shape)
+    for i in Graph.nodes():
+        for j in Graph.nodes():
+            deg_i = Graph.degree(i, weight="weight") - AdjacencyMatrix[i, i]
+            deg_j = Graph.degree(j, weight="weight") - AdjacencyMatrix[j, j]
+            mod = AdjacencyMatrix[i, j] - (resolution*((deg_i*deg_j)/(np.sum(AdjacencyMatrix))))
             ModularityMatrix[i, j] = mod
     return ModularityMatrix
 
@@ -997,7 +1024,10 @@ def output(develop, state, lower_bound, upper_bound, communities, preprocessing_
     if develop:
         out = state, lower_bound, upper_bound, communities, preprocessing_time, formulation_time, solve_time
     else:
-        gap = (upper_bound - lower_bound) / upper_bound
+        if upper_bound == 0:
+            gap = 0
+        else:
+            gap = (upper_bound - lower_bound) / upper_bound
         out = lower_bound, gap, communities, preprocessing_time+formulation_time, solve_time
     return out
 
@@ -1013,14 +1043,18 @@ def bayan(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_meth
     total_solve_time = 0
     total_preprocessing_time = 0
     total_formulation_time = 0
-    threshold_sub = threshold / n_sub
+    total_w_edge = np.sum(nx.adjacency_matrix(G, weight="actual_weight"))
+    threshold_sub = threshold / float(n_sub)
     for sub_inx, sub_graph in enumerate(list_of_subgraphs):
+        if sub_graph.number_of_edges() == 0:
+            optimal_partition.append([a for a in sub_graph.nodes()])
+            continue
 
         sub_graph = nx.convert_node_labels_to_integers(sub_graph, label_attribute="original_label")
         mapping = nx.get_node_attributes(sub_graph, 'original_label')
-
+        sub_resolution = resolution * np.sum(nx.adjacency_matrix(sub_graph, weight="actual_weight"))/ total_w_edge
         bayan_output = alg(sub_graph, threshold=threshold_sub, time_allowed=time_allowed, delta=delta,
-              resolution=resolution, lp_method=lp_method, develop_mode=develop_mode)
+              resolution=sub_resolution, lp_method=lp_method, develop_mode=develop_mode)
 
         if develop_mode:
             sub_results[sub_inx] = bayan_output
@@ -1040,8 +1074,7 @@ def bayan(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_meth
     mapping = nx.get_node_attributes(G, 'original_label')
     mapping ={val: key for key, val in mapping.items()}
     int_optimal_partition = [[mapping[i] for i in com] for com in optimal_partition]
-    lower_bound = calculate_modularity(int_optimal_partition, G, resolution)
-
+    lower_bound = calculate_weighted_modularity(int_optimal_partition, G, resolution)
 
     if develop_mode:
         for sub_inx, sub_graph in enumerate(list_of_subgraphs):
@@ -1081,7 +1114,7 @@ def alg(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_method
     mod_combo = calculate_modularity(communities_combo_declustered, orig_graph, resolution)
     root_combo_time = time.time() - root_combo_time_start
 
-    if mod_lp - mod_combo < threshold:
+    if (mod_lp - mod_combo)/mod_lp < threshold:
         return output(develop_mode,2, mod_combo, mod_lp, communities_combo_declustered, preprocessing_time, formulation_time, root_combo_time+root_lp_time)
     best_bound = mod_lp
     incumbent = mod_combo
@@ -1098,7 +1131,8 @@ def alg(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_method
     best_lp = root
     root_time = root_lp_time + root_combo_time
     solve_start = time.time()
-    while (best_bound - incumbent > threshold and nodes_previous_level != [] and time.time() - solve_start - root_time <= time_allowed): #add time_limit as a user parameter
+    while ( (best_bound - incumbent)/best_bound > threshold and nodes_previous_level != []
+            and time.time() - solve_start - root_time <= time_allowed): #add time_limit as a user parameter
         nodes_current_level = []
         lower_bounds = []
         upper_bounds = []
