@@ -153,7 +153,8 @@ def clique_filtering(G, resolution):
         if skip:
             shrink_dict[node] = node
             continue
-        neighbours = nx.adjacency_matrix(G)[:node].indices
+        # neighbours = nx.adjacency_matrix(G)[:node].indices
+        neighbours = nx.adjacency_matrix(G)[[node][:]].indices
         if neighbours.shape[0] == 1:
             shrink_dict[node] = neighbours[0]
             continue
@@ -190,6 +191,7 @@ def clique_filtering(G, resolution):
                     'actual_weight'] += total_weight
                 G_prime.edges[(shrink_dict[shrink_dict[key]], shrink_dict[shrink_dict[key]])][
                     'constrained_modularity'] = False
+                # pass
             else:
                 G_prime.add_edge(shrink_dict[shrink_dict[key]], shrink_dict[shrink_dict[key]],
                                  actual_weight=total_weight, weight=0, constrained_modularity=False)
@@ -1297,6 +1299,10 @@ def perform_branch(node, model, incumbent, best_bound, Graph, original_graph, is
     Perform the left and right branch on input node
     """
     violated_triples_dict = node.get_violated_triples(list_of_cut_triads)
+    if len(violated_triples_dict) == 0:
+        #TODO Solve IP
+        pass
+
     prev_fixed_ones = node.get_fixed_ones().copy()
     prev_fixed_zeros = node.get_fixed_zeros().copy()
     # Select triple based on most common nodes with previous triple
