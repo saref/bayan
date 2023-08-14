@@ -1,5 +1,6 @@
-                    GNU GENERAL PUBLIC LICENSE
-                       Version 2, June 1991
+              GNU GENERAL PUBLIC LICENSE
+                    modified with 
+        “Commons Clause” License Condition v1.0
 
  Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -20,10 +21,10 @@ your programs, too.
 
   When we speak of free software, we are referring to freedom, not
 price.  Our General Public Licenses are designed to make sure that you
-have the freedom to distribute copies of free software (and charge for
-this service if you wish), that you receive source code or can get it
-if you want it, that you can change the software or use pieces of it
-in new free programs; and that you know you can do these things.
+have the freedom to distribute copies of free software, that you 
+receive source code or can get itif you want it, that you can change 
+the software or use pieces of it in new free programs; and that you 
+know you can do these things.
 
   To protect your rights, we need to make restrictions that forbid
 anyone to deny you these rights or to ask you to surrender the rights.
@@ -276,6 +277,20 @@ TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY
 YOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER
 PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGES.
+
+                “Commons Clause” License Condition v1.0
+
+13. Without limiting other conditions in the License, the grant of rights under the 
+License will not include, and the License does not grant to you, the right to 
+Sell the Software.
+
+For purposes of the foregoing, “Sell” means practicing any or all of the rights 
+granted to you under the License to provide to third parties, for a fee or other 
+consideration (including without limitation fees for hosting or consulting/ support 
+services related to the Software), a product or service whose value derives, 
+entirely or substantially, from the functionality of the Software. Any license 
+notice or attribution required by the License must also include this 
+Commons Cause License Condition notice.
 
                      END OF TERMS AND CONDITIONS
 
