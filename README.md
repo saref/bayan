@@ -36,26 +36,24 @@ The dependencies above will be automatically installed when you install bayanpy 
 
 bayanpy requires Gurobi Optimizer. Gurobi is a commercial software, but it can be registered with a free academic license if the user is affiliated with an academic institution. Due to the restrictions of Gurobi, Bayan requires a (free academic) Gurobi license for processing any graph with more than sqrt(2000) ≈ 44 nodes.
 
-Follow these steps to install Gurobi with a free academic license:
+Follow these five steps to install Gurobi with a free academic license:
 
 1. Download and install Python version 3.9 from [the official Python website](https://www.python.org/downloads/).
-2. Register for an account on [the Gurobi registration page](https://pages.gurobi.com/registration) to get a free academic license for using Gurobi.
-3. Download and install Gurobi Optimizer (version >= 9.5, latest version is recommended) from [the Gurobi downloads page](https://www.gurobi.com/downloads/gurobi-optimizer-eula/) after reading and agreeing to Gurobi's End User License Agreement.
-4. Install Gurobi into Python by running the following commands (either using conda or pip) in a terminal:
+2. Register for an account on [the Gurobi registration page](https://pages.gurobi.com/registration) to be able to request a free academic license for using Gurobi (if you are affiliated with an academic institution).
+3. Install Gurobi (version >= 9.5, latest version is recommended) into Python ([using either conda or pip](https://support.gurobi.com/hc/en-us/articles/360044290292)) using the following commands:
 - Using Conda (recommended for Anaconda users):
 ```
 conda config --add channels http://conda.anaconda.org/gurobi
-conda install gurobi
+conda install -c gurobi gurobi
 ```
-
 - Using pip (alternative method):
 ```
-pip install gurobipy
+python -m pip install gurobipy
 ```
+4. Request a Named-User Academic License from [the Gurobi academic license page](https://www.gurobi.com/downloads/end-user-license-agreement-academic/) after reading and agreeing to Gurobi's End User License Agreement.
+5. Install the license on your computer following the [instructions given on the Gurobi license page](https://support.gurobi.com/hc/en-us/articles/360059842732).
 
-5. Request an academic license from [the Gurobi academic license page](https://www.gurobi.com/downloads/end-user-license-agreement-academic/) and install the license on your computer following the instructions given on the Gurobi license page.
-
-For detailed installation instructions, refer to the Gurobi's [Quick Start Guides](https://support.gurobi.com/hc/en-us/articles/14799677517585-Getting-Started-with-Gurobi-Optimizer).
+For detailed installation instructions, refer to the [Gurobi's Quick Start Guides](https://support.gurobi.com/hc/en-us/articles/14799677517585-Getting-Started-with-Gurobi-Optimizer).
 
 ## Usage
 
