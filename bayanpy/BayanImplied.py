@@ -443,12 +443,87 @@ def run_lp_pyomo(model, Graph, fixed_ones, fixed_zeros, resolution, lp_method):
         print("Termination condition:", results.solver.termination_condition)
         return -1, -1, model
 
+def VariableValue(var_vals, i,j):
+    value = 0
+    if i < j:
+        value = var_vals[str(i)+","+str(j)]
+    elif  i >j:
+        value = var_vals[str(j)+","+str(i)]
+    return round(value, 5)
+
+def TwoPartitionSeperation(var_vals):
+    var_vals_detail = {}
+    for key in var_vals:
+        i,j = [int(a) for a in key.split(",")]
+        if i not in var_vals_detail:
+            var_vals_detail[i] = {'0':[], '1':[], '0-1':[]}
+        if j not in var_vals_detail:
+            var_vals_detail[j] = {'0':[], '1':[], '0-1':[]}
+        if round(var_vals[key],3) == 0:
+            var_vals_detail[i]['0'].append(j)
+            var_vals_detail[j]['0'].append(i)
+        elif round(var_vals[key],3) == 1:
+            var_vals_detail[i]['1'].append(j)
+            var_vals_detail[j]['1'].append(i)
+        else:
+            var_vals_detail[i]['0-1'].append(j)
+            var_vals_detail[j]['0-1'].append(i)
+
+    
+    Cuts = []
+    skipW = 0
+    for v in var_vals_detail:
+        # S =[]
+        # S.append(v)
+        T =[]
+        for w in var_vals_detail[v]['0-1']:
+            if len(T)==0:
+                T.append(w) 
+                continue
+            for w_old in T:
+                if VariableValue(var_vals, w,w_old) != 0:
+                    skipW = 1
+                    break
+            if skipW:
+                skipW = 0
+                continue
+            T.append(w)
+        # Check if  X[{v}:T] >1
+        if sum([VariableValue(var_vals, v,w) for w in T]) > 1 :
+            # add X[{v}:T] <= 1 cut
+            Cuts.append([str(v)+","+str(w) for w in T if v <w] + [str(w)+","+str(v) for w in T if w <v] )  
+
+    if Cuts:
+        return Cuts
+    # Run the second heuristic if we could not find any cut with the first one
+    for v in var_vals_detail:
+        T =[]
+        for w in var_vals_detail[v]['0-1']:
+            if len(T)==0:
+                T.append(w) 
+                continue
+            sumXij = sum ([ VariableValue(var_vals, w,w_old)  for w_old in T])       
+            if VariableValue(var_vals, w,v) - sumXij > 0:
+                T.append(w)
+        # Check if  X[{v}:T] >1
+        if sum([VariableValue(var_vals, v,w) for w in T]) >1 :
+            # add X[{v}:T] <= 1 cut
+            Cuts.append([str(v)+","+str(w) for w in T if v <w] + [str(w)+","+str(v) for w in T if w <v] )  
+    return Cuts
+
+def AddCuts(model, Cuts):
+    if Cuts:
+        for cut in Cuts:
+            model.addConstr(quicksum([model.getVarByName(var_name) for var_name in cut]) <=1, name='cut_')
+
+    return model
 
 def lp_formulation(Graph, AdjacencyMatrix, ModularityMatrix, isolated_nodes,
                    lp_method, warmstart=int(0), branching_priotiy=int(0)):
     """
     Method to create the LP model and run it for the root node
     """
+    validinequality = 0 # Parameter to add valid inequality cust to root node or not
     formulation_time_start = time.time()
     list_of_cut_triads = []
     pairs = set(combinations(np.sort(list((Graph).nodes())), 2))
@@ -534,20 +609,35 @@ def lp_formulation(Graph, AdjacencyMatrix, ModularityMatrix, isolated_nodes,
         model.update()
 
     start_time = time.time()
-    model.optimize()
-    solveTime = (time.time() - start_time)
-    obj = model.getObjective()
+    
+    if validinequality:
+        # Add valid inequalities to the root node.
+        while 1:
+            model.optimize()
+            var_vals = {}
+            for var in model.getVars():
+                var_vals[var.varName] = var.x
+            if is_integer_solution(Graph, var_vals):
+                break
+            Cuts = TwoPartitionSeperation(var_vals)
+            if len(Cuts):
+                model = AddCuts(model, Cuts)
+                model.update()
+            else:
+                break
+    else:
+        model.optimize()
+        var_vals = {}
+        for var in model.getVars():
+            var_vals[var.varName] = var.x
 
+    obj = model.getObjective()
+    solveTime = (time.time() - start_time)
     # objectivevalue = np.round(((2*obj.getValue()+(ModularityMatrix.trace()[0,0]))/np.sum(AdjacencyMatrix)), 8)
     objectivevalue = np.round(((2 * obj.getValue() + (ModularityMatrix.trace())) / np.sum(AdjacencyMatrix)), 8)
     # print('Instance 0',': modularity equals',objectivevalue)
     # if (model.NodeCount)**(1/((size)+2*(order))) >= 1:
     #    effectiveBranchingFactors = ((model.NodeCount)**(1/((size)+2*(order))))
-
-    var_vals = {}
-    for var in model.getVars():
-        var_vals[var.varName] = var.x
-
     return objectivevalue, var_vals, model, list_of_cut_triads, formulation_time, solveTime
 
 
@@ -1101,6 +1191,12 @@ def bayan(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_meth
 
     return out
 
+def PickIncumbent(incumbent, best_combo, possibleIncumbent, cNode):
+    if possibleIncumbent > incumbent:
+        incumbent = possibleIncumbent
+        best_combo = cNode
+    return incumbent, best_combo
+
 
 def alg(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_method=4, develop_mode=False):
     """
@@ -1143,19 +1239,17 @@ def alg(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_method
                                                                    resolution)
     root.set_fixed_ones(var_fixed_ones)
     root.set_fixed_zeros(var_fixed_zeros)
-    current_node = root
     current_level = 1
-    nodes_previous_level = [root]
+    open_nodes_2_branch = [root]
     best_combo = root
     best_lp = root
     root_time = root_lp_time + root_combo_time
     solve_start = time.time()
-    while ((best_bound - incumbent) / best_bound > threshold and nodes_previous_level != []
-           and time.time() - solve_start - root_time <= time_allowed):  # add time_limit as a user parameter
+    while ((best_bound - incumbent) / best_bound > threshold and open_nodes_2_branch != []
+           and time.time() - solve_start - root_time <= time_allowed):
         nodes_current_level = []
-        lower_bounds = []
         upper_bounds = []
-        for node in nodes_previous_level:
+        for node in open_nodes_2_branch:
             if time.time() - solve_start - root_time >= time_allowed:
                 if best_combo.is_integer:
                     if best_combo.lower_bound <= best_combo.upper_bound:
@@ -1174,74 +1268,62 @@ def alg(G, threshold=0.001, time_allowed=600, delta=0.7, resolution=1, lp_method
             current_node = node
             left_node, right_node = perform_branch(node, model, incumbent, best_bound, Graph, orig_graph,
                                                    isolated_nodes, list_of_cut_triads, delta, resolution)
+
+            left_node.parent = current_node
+            right_node.parent = current_node
+            left_node.set_level(current_level)
+            right_node.set_level(current_level)
+
             if left_node.close:
                 print("Left node is closed")
                 if left_node.is_integer and incumbent <= left_node.upper_bound:
-                    incumbent = left_node.upper_bound
-                    best_combo = left_node
-                    nodes_current_level.append(left_node)
-                    lower_bounds.append(left_node.lower_bound)
+                    incumbent, best_combo = PickIncumbent(incumbent, best_combo, left_node.upper_bound, left_node)
                     upper_bounds.append(left_node.upper_bound)
-                    current_node.left = left_node
-                    left_node.parent = current_node
-                    left_node.set_level(current_level)
-                current_node.left = left_node
             else:
-                nodes_current_level.append(left_node)
-                lower_bounds.append(left_node.lower_bound)
+                incumbent, best_combo = PickIncumbent(incumbent, best_combo, left_node.lower_bound, left_node)
                 upper_bounds.append(left_node.upper_bound)
-                current_node.left = left_node
-                left_node.parent = current_node
-                left_node.set_level(current_level)
+                if left_node.upper_bound < incumbent:
+                    left_node.close = True
 
             if right_node.close:
                 print("Right node is closed")
                 if right_node.is_integer and incumbent <= right_node.upper_bound:
-                    incumbent = right_node.upper_bound
-                    best_combo = right_node
-                    nodes_current_level.append(right_node)
-                    lower_bounds.append(right_node.lower_bound)
+                    incumbent, best_combo = PickIncumbent(incumbent, best_combo, right_node.upper_bound, right_node)
                     upper_bounds.append(right_node.upper_bound)
-                    current_node.right = right_node
-                    right_node.parent = current_node
-                    right_node.set_level(current_level)
-                current_node.right = right_node
+
             else:
-                nodes_current_level.append(right_node)
-                lower_bounds.append(right_node.lower_bound)
+                incumbent, best_combo = PickIncumbent(incumbent, best_combo, right_node.lower_bound, right_node)
                 upper_bounds.append(right_node.upper_bound)
-                current_node.right = right_node
-                right_node.parent = current_node
-                right_node.set_level(current_level)
-        incumbent = max(lower_bounds + [incumbent])
-        #         best_bound = min(upper_bounds + [best_bound])
-        not_possible_vals = []
-        count = 0
-        for n in nodes_current_level:
-            if n.lower_bound == incumbent:
-                best_combo = n
-            #             if n.upper_bound == best_bound:
-            #                 best_lp = n
-            if n.upper_bound < incumbent:
-                n.close = True
-                not_possible_vals.append(n.upper_bound)
-            count += 1
-        for val in not_possible_vals:
-            upper_bounds.remove(val)
-        best_bound = min(upper_bounds + [best_bound])
-        for n in nodes_current_level:
-            if n.upper_bound == best_bound:
-                best_lp = n
-        #        print("Bounds", incumbent, best_bound)
+                if right_node.upper_bound < incumbent:
+                    right_node.close = True
+
+            current_node.left = left_node
+            current_node.right = right_node
+            # Add nodes to the current level nodes
+            nodes_current_level.append(left_node)
+            nodes_current_level.append(right_node)
+
+        # The UB is the bound for one of the nodes in the current level
+        if upper_bounds:
+            best_bound = max(upper_bounds)
+            for n in nodes_current_level:
+                if n.upper_bound == best_bound:
+                    best_lp = n
+                    break
+
+        if develop_mode:
+            print(f"Level {current_level} : Min UB = {min(upper_bounds)}, Max UB = {best_bound}")
+            print(f"Bounds after searching level {current_level}: LB = {incumbent}, UB={best_bound}")
+
         current_level += 1
-        nodes_p_level = []
+        # Select the open nodes to branch on to create the next level
+        open_nodes_2_branch = []
         for a in nodes_current_level:
             if a.close == False:
-                nodes_p_level.append(a)
-        nodes_previous_level = nodes_p_level
+                open_nodes_2_branch.append(a)
 
-    #     print(best_combo.lower_bound, best_combo.upper_bound)
-    #     print(best_lp.lower_bound, best_lp.upper_bound)
+    # print(best_combo.lower_bound, best_combo.upper_bound)
+    # print(best_lp.lower_bound, best_lp.upper_bound)
     if best_combo.is_integer:
         if best_combo.lower_bound <= best_combo.upper_bound:
             return output(develop_mode, 6, best_combo.upper_bound, best_combo.upper_bound,
