@@ -1,9 +1,9 @@
 # bayanpy: Bayan Algorithm for Community Detection
 
-bayanpy is a Python package implementing the Bayan algorithm, a community detection method capable of providing a globally optimal solution to the modularity maximization problem. Bayan can also be implemented such that it provides an approximation of the maximum modularity with a guarantee of proximity. This algorithm is theoretically grounded by the Integer Programming (IP) formulation of the modularity maximization problem and relies on an exact branch-and-cut scheme for solving the NP-complete optimization problem to global optimality.
+bayanpy is a Python package implementing the Bayan algorithm: a community detection method capable of providing a globally optimal solution to the modularity maximization problem. Bayan can also be used such that it provides an approximation of the maximum modularity with a guarantee of proximity. This algorithm is theoretically grounded by the Integer Programming (IP) formulation of the modularity maximization problem and relies on an exact branch-and-cut scheme for solving the NP-complete optimization problem to global optimality.
 
 For more information, visit the [Bayan project website](https://bayanproject.github.io/).
-For a few examples on different ways you can use Bayan see this Google Colab notebook: [bayanpy Examples](https://tinyurl.com/bayancolab).
+For a few examples on different ways you can use Bayan see this Google Colab notebook: [bayanpy Examples]([https://tinyurl.com/bayancolab](https://colab.research.google.com/drive/1_Clxp5FcEYJVn_w7Q6zm8bX0t1TEg7m_?usp=sharing)).
 
 
 ## Installation
@@ -89,7 +89,7 @@ modularity, optimality_gap, community, modeling_time, solve_time = bayanpy.bayan
 
 
 ### Example
-You can find a few examples on Bayan in this Google Colab notebook: [bayanpy Examples](https://tinyurl.com/bayancolab)
+You can find a few examples on Bayan in this Google Colab notebook: [bayanpy Examples]([https://tinyurl.com/bayancolab](https://colab.research.google.com/drive/1_Clxp5FcEYJVn_w7Q6zm8bX0t1TEg7m_?usp=sharing))
 
 
 ## Contributing
