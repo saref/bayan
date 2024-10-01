@@ -26,7 +26,7 @@ bayanpy has the following dependencies:
 - joblib>=1.1.0
 - pycombo>=0.1.7
 
-Note that pycombo requires Python version =<3.9 and therefore bayanpy has the same python version requirement.
+Note that pycombo version 0.1.7 requires Python version =<3.9 and therefore bayanpy has the same python version requirement.
 
 The dependencies above will be automatically installed when you install bayanpy using pip.
 
@@ -99,6 +99,12 @@ We welcome contributions to the [Bayan project](https://bayanproject.github.io/)
 ## License
 
 bayanpy is released under the [GNU General Public License](LICENSE). For more information, please refer to the [LICENSE](LICENSE) file in the repository.
+
+## Citation
+
+If you use bayanpy in any document, please cite the following peer-reviewed article:
+
+Aref S, Mostajabdaveh M, Chheda H. The Bayan algorithm: Detecting communities in networks through exact and approximate optimization of modularity. Physical Review E. 2024
 
 
 
