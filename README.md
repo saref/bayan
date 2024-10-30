@@ -94,7 +94,7 @@ You can find a few examples on Bayan in this Google Colab notebook: [bayanpy Exa
 
 ## Contributing
 
-We welcome contributions to the [Bayan project](https://bayanproject.github.io/). If you have any suggestions or encounter any issues, please feel free to open an issue or submit a pull request on this GitHub repository.
+If you have any suggestions or encounter any issues with the [Bayan project](https://bayanproject.github.io/), please feel free to open an issue or submit a pull request on this GitHub repository.
 
 ## License
 
@@ -104,7 +104,7 @@ bayanpy is released under the [GNU General Public License](LICENSE). For more in
 
 If you use bayanpy in any document, please cite the following peer-reviewed article:
 
-Aref S, Mostajabdaveh M, Chheda H. The Bayan algorithm: Detecting communities in networks through exact and approximate optimization of modularity. Physical Review E. 2024
+Aref, Samin, Mahdi Mostajabdaveh, and Hriday Chheda. "Bayan algorithm: Detecting communities in networks through exact and approximate optimization of modularity." Physical Review E 110, no. 4 (2024): 044315. https://doi.org/10.1103/PhysRevE.110.044315
 
 
 
